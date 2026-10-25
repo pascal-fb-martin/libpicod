@@ -26,6 +26,8 @@ With no command, picodcmd starts in interactive mode. Otherwise it executes the 
 
 Type `picodcmd help` for a list of commands.
 
+The library can be removed: run `sudo make uninstall`. This also removes the `udev` rules.
+
 ## API
 
 The libpicod API is asynchronous. It is assumed that the application will implement an event loop based on `select()` or `poll()`.
