@@ -2,17 +2,17 @@
 
 ## Overview
 
-This is a small library for Linux that detects and communicates with one or more RaspBerry Pi Pico devices that are running picod. The Pico devices must be attached to the local computer using USB.
+This is a small library for Linux that detects and communicates with one or more RaspBerry Pi Pico devices that are running [picod](https://github.com/joan2937/picod). The RPi Pico devices must be attached to the local computer using USB.
 
-The detection of the Raspberry Pi Pico devices relies a device naming convention implemented by a udev rule.
+The detection of the RPi Pico devices relies a device naming convention implemented by a `udev` rule.
 
-The current implementation handles up to 16 Pico devices simultaneously.
+The current implementation handles up to 16 RPi Pico devices simultaneously.
 
 ## Installation.
 
 Clone this repository, run `make rebuild` and then `sudo make install`.
 
-You can now plug a Pico device to a USB port and test that the installation was successful by typing `picodcmd list` (the tool waits for 2 seconds to make sure it detected all present Pico devices).
+You can now plug a RPi Pico device to a USB port and test that the installation was successful by typing `picodcmd list` (the tool waits for 2 seconds to make sure it detected all present RPi Pico devices).
 
 ## Command line tool for test and experimentation
 
@@ -31,12 +31,12 @@ Type `picodcmd help` for a list of commands.
 The libpicod API is asynchronous. It is assumed that the application will implement an event loop based on `select()` or `poll()`.
 
 > [!NOTE]
-> The original objective of this library is to implement a web service that provides access to the Pico GPIO pins. That web service must simultanously handle multiple Pico devices and concurrent HTTP requests.
+> The original objective of this library is to implement a web service that provides access to the RPi Pico GPIO pins. That web service must simultanously handle multiple RPi Pico devices and concurrent HTTP requests.
 
-The libpicod library is modular: a core module implements the detection of, and communication with, the Pico devices; extension modules implement the access to each picod feature. At this time an extension module is provided for the direct GPIO access. Future extension modules will give access to the PWM, UART and SPI features.
+The libpicod library is modular: a core module implements the detection of, and communication with, the RPi Pico devices; extension modules implement the access to each picod feature. At this time an extension module is provided for the direct GPIO access. Future extension modules will give access to the PWM, UART and SPI features.
 
 > [!NOTE]
-> The motivation for this modular implementation is a subsequent DCC project. This idea is to create alternative Pico firmwares that implement specialized features in a way that is compatible with the picod protocol.
+> The motivation for this modular implementation is a subsequent DCC project. This idea is to create alternative RPi Pico firmwares that implement specialized features in a way that is compatible with the picod protocol.
 
 ### Core API
 
@@ -48,7 +48,7 @@ const char *picod_initialize (int argc, char **argv);
 
 Initialize the library. The supported command line options are:
 
-* `-pico=STRING`: Provide an explicit path to a Pico device (typically in `/dev`).
+* `-pico=STRING`: Provide an explicit path to a RPi Pico device (typically in `/dev`).
 
 The -pico option can be repeated, allowing support of multiple RPi Pico devices simultaneously. Using the -device option disables auto discovery of RPi Pico devices. That option can be used when the udev naming convention cannot be relied on.
 
@@ -101,7 +101,7 @@ int  picod_transmit (int fd);
 
 These five function are typically used in a `select()` or `poll()` loop. The list of Pico devices may change from time to time: walk through the list each time and ignore any returned descriptor that is 0 or less. Function `picod_count()` returns the total number of Pico devices known at that time. Some RPi Pico devices may has been disconnected, or may have not been identified yet.
 
-Function `picod_descriptor()` returns the file descriptor associated with the specified RPi Pico device, or -1 if the device is not accessible. The file descriptor for a specific Pico device should not be monitored for writing if `picod_busy()` return 0, i.e. there is no data to send.
+Function `picod_descriptor()` returns the file descriptor associated with the specified RPi Pico device, or -1 if the device is not accessible. The file descriptor for a specific RPi Pico device should not be monitored for writing if `picod_busy()` return 0, i.e. there is no data to send.
 
 Function `picod_transmit()` should be called when the file descriptor is ready for writing. It returns 0 when there is no more data to send.
 
@@ -137,7 +137,7 @@ Example using `select()`:
 const unsigned char *picod_uid (int index);
 ```
 
-Return the UID of the Pico board, or null when the UID has not been acquired yet.
+Return the UID of the RPi Pico device, or null when the UID has not been acquired yet.
 
 ```
 int picod_signature (const uint8_t *key, int length);
@@ -157,9 +157,9 @@ int picod_start (const unsigned char *uid);
 
 Prepare a new (empty) packet context for the specified RPi Pico device.
 
-Return the current Pico device index given the Pico UID, or -1 when no Pico with the specified UID can be found.
+Return the current RPi Pico device index given the RPi Pico UID, or -1 when no RPi Pico with the specified UID can be found.
 
-The index value for the same Pico board may change after waiting for I/O.
+The index value for the same RPi Pico device may change after waiting for I/O.
 
 ```
 const char *picod_submit (int index);
@@ -167,7 +167,7 @@ const char *picod_submit (int index);
 
 Send all commands accumulated for the specified RPi Pico device. Return null on success, an error message on failure.
 
-The application will typically call `picod_start()`, then one or more Picod command functions, then `picod_submit()` to transmit the requests all at once:
+The application will typically call `picod_start()`, then one or more picod command functions, then `picod_submit()` to transmit the requests all at once:
 
 ```
    int index = picod_start (uid);
@@ -177,13 +177,13 @@ The application will typically call `picod_start()`, then one or more Picod comm
    }
 ```
 
-The Picod command functions are implemented in separate modules.
+The picod command functions are implemented in separate modules.
 
 ```
 const char *picod_reset (const uint8_t *uid);
 ```
 
-Send a reset command to the specified Pico device. No response is expected. Return null on success, an error message on failure.
+Send a reset command to the specified RPi Pico device. No response is expected. Return null on success, an error message on failure.
 
 ```
 void picod_background (int now);
@@ -279,7 +279,7 @@ Build a GPIO read request.
 picod_gpio_read_levels (const uint8_t *response, int *levels);
 ```
 
-Retrieve the GPIO pins state after a response from the Pico device has been received. The `level` array is indexed by the GPIO pin number and must have 30 elements or more.
+Retrieve the GPIO pins state after a response from the RPi Pico device has been received. The `level` array is indexed by the GPIO pin number and must have 30 elements or more.
 
 ```
 const char *picod_gpio_write (int device,
@@ -304,7 +304,7 @@ const char *picod_gpio_alert (int device, int count, int gpio[],
 
 Register for (unsollicted != 0), or deregister from (unsollicted == 0), alerts on the selected GPIO pins.
 
-The unsollicited callback will be called each time an unsollicited message is received from the Pico device. This is a sticky callback: it can be replaced but it cannot be removed. That should not matter much: if all alerts are disabled, the picod unsollicited messages will stop anyway.
+The unsollicited callback will be called each time an unsollicited message is received from the RPi Pico device. This is a sticky callback: it can be replaced but it cannot be removed. That should not matter much: if all alerts are disabled, the picod unsollicited messages will stop anyway.
 
 ```
 int picod_gpio_alert_count (const uint8_t *response);
@@ -321,5 +321,5 @@ There are two types of reports:
 - Other reports when states did change.
 
 > [!WARNING]
-> The value returned by picod_gpio_alert_timestamp() is the raw Pico tick, not synchronized to the local time. Basic rule is to take the local time when the response was received, consider that it matches the tick of the last report and then evaluate the time of previous report items in this message relative to the last.
+> The value returned by picod_gpio_alert_timestamp() is the raw RPi Pico tick, not synchronized to the local time. Basic rule is to take the local time when the response was received, consider that it matches the tick of the last report and then evaluate the time of previous report items in this message relative to the last.
 
