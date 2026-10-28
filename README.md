@@ -142,6 +142,12 @@ const unsigned char *picod_uid (int index);
 Return the UID of the RPi Pico device, or null when the UID has not been acquired yet.
 
 ```
+const char *picod_tty (int index);
+```
+
+Return the full path to the UNIX device used to access the RPi Pico device.
+
+```
 int picod_signature (const uint8_t *key, int length);
 ```
 

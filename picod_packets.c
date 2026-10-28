@@ -120,6 +120,12 @@
  *    Return the UID of the Pico board, or null when the UID has not
  *    been acquired yet.
  *
+ * const char *picod_tty (int index);
+ *
+ *    Return the full path of the UNIX device used to access the Pico board.
+ *    This will return a valid string even if the Pico board has not been
+ *    identified yet.
+ *
  * int picod_signature (const uint8_t *key, int length);
  *
  *    This is a helper function that can be used to build hash indexes
@@ -542,6 +548,12 @@ int picod_descriptor (int index) {
 const unsigned char *picod_uid (int index) {
     struct PicodDeviceLink *link = picod_access (index);
     if (link && (link->version)) return link->uid; // Use version as flag.
+    return 0;
+}
+
+const char *picod_tty (int index) {
+    struct PicodDeviceLink *link = picod_access (index);
+    if (link && (link->tty)) return link->tty;
     return 0;
 }
 

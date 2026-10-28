@@ -37,6 +37,7 @@ void picod_receive (int fd);
 
 const uint8_t *picod_uid (int index);
 int            picod_version (int index);
+const char    *picod_tty (int index);
 
 int picod_signature (const uint8_t *key, int length);
 
