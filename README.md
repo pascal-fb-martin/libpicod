@@ -24,6 +24,8 @@ The library comes with a test application that doubles as an example: `picodcmd`
 
 With no command, picodcmd starts in interactive mode. Otherwise it executes the provided command and exits.
 
+The `-t` option causes picodcmd to start with protocol traces enabled. This is equivalent to command `trace on` (see `picodcmd help`), except that it captures the initial Pico devices discovery.
+
 Type `picodcmd help` for a list of commands.
 
 The library can be removed: run `sudo make uninstall`. This also removes the `udev` rules.
