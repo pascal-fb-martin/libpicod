@@ -533,6 +533,20 @@ static void picodWaitInput (int tty) {
     }
 }
 
+static void picodDetectAndExit (void) {
+
+    int count = picod_count ();
+    if (count <= 0) return;
+
+    while (count-- > 0) {
+        if (!picod_uid(count)) return;
+    }
+
+    // Now all Pico devices present have been identified.
+    picodList ();
+    exit (0);
+}
+
 int main (int argc, const char **argv) {
 
     if ((argc >= 2) && (!strcmp (argv[1], "-t"))) {
@@ -566,6 +580,7 @@ int main (int argc, const char **argv) {
         WaitDetected = atoi(argv[2]);
         picodWaitDevice (&WaitDetected);
     } else if (!strcasecmp (argv[1], "list")) {
+        picod_listen (picodDetectAndExit);
         picodWaitInput (0);
     }
     picodExecute (argc-1, argv+1);

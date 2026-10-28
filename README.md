@@ -12,7 +12,7 @@ The current implementation handles up to 16 RPi Pico devices simultaneously.
 
 Clone this repository, run `make rebuild` and then `sudo make install`.
 
-You can now plug a RPi Pico device to a USB port and test that the installation was successful by typing `picodcmd list` (the tool waits for 2 seconds to make sure it detected all present RPi Pico devices).
+You can now plug a RPi Pico device (with picod installed) to a USB port and test that the installation was successful by typing `picodcmd list`.
 
 ## Command line tool for test and experimentation
 
