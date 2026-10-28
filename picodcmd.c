@@ -228,12 +228,12 @@ static const char *setdirection (int device,
 
 static void picodList (void) {
 
-    printf ("Index UID              VERSION PATH\n");
+    printf ("Index  UID               VERSION   PATH\n");
     int count = picod_count ();
     while (count-- > 0) {
         const uint8_t *uid = picod_uid (count);
         if (!uid) continue;
-        printf ("%3d   %02x%02x%02x%02x%02x%02x%02x%02x %08x %s\n",
+        printf ("%3d    %02x%02x%02x%02x%02x%02x%02x%02x  %08x  %s\n",
                 count, uid[0], uid[1], uid[2], uid[3],
                        uid[4], uid[5], uid[6], uid[7],
                        picod_version(count), picod_tty(count));
