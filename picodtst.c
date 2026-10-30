@@ -182,7 +182,7 @@ static int packet_decode (const uint8_t *data, int length, int max, int *stop) {
                     int deltatick = basetick - unpack32 (response+cursor);
                     adjust_by_tick (&ts, &now, deltatick);
                     printf ("    %lld.%03ld %08x\n",
-                            (long long)(ts.tv_sec), ts.tv_usec/1000,
+                            (long long)(ts.tv_sec), (long)(ts.tv_usec/1000),
                             unpack32 (response+cursor+4));
                 }
                 break;
