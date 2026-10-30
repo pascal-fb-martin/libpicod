@@ -1,0 +1,8 @@
+#!/bin/sh
+
+case $1 in
+    remove|purge)
+        /usr/bin/udevadm control --reload-rules && /usr/bin/udevadm trigger
+        systemctl daemon-reload
+esac
+

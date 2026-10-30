@@ -1,0 +1,11 @@
+#!/bin/sh
+
+HOUSEAPP=houserelays
+HOUSEGROUP=gpio
+
+case $1 in
+    configure|abort-upgrade|abort-deconfigure|abort-remove)
+        /usr/bin/udevadm control --reload-rules && /usr/bin/udevadm trigger
+        ;;
+esac
+

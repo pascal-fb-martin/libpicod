@@ -1,0 +1,16 @@
+Source: libpicod
+Version: 1.0
+Section: Electronics
+Maintainer: Pascal Martin <pascal.fb.martin@gmail.com>
+Priority: optional
+Homepage: https://github.com/pascal-fb-martin/libpicod
+Standard-Version: 4.7.0
+Package: libpicod
+Architecture: {{arch}}
+Description: Tools and libraries to interact with picod boards
+ The picod firmware runs on a Raspberry Pi Pico board and appears on Linux
+ as a USB serial device.
+ .
+ This package provides a tool (picodcmd) and a library (libpicod) that can
+ be used to interact with the picod firmware.
+
