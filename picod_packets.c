@@ -252,7 +252,7 @@ static struct PicodDeviceLink *PicodDevices[PICODEVICESMAX];
 static int PicodDevicesCount = 0;
 
 static PicodListener *PicodDiscoveryListener = 0;
-static PicodTap *PicodTapCallback = 0;
+static PicodTap *PicodUserTap = 0;
 
 void picod_pack16 (uint8_t *buffer, int value) {
     *buffer++ = (value >> 8) & 0xff;
@@ -333,6 +333,11 @@ static struct PicodDeviceLink *picod_access (int index) {
     return PicodDevices[index];
 }
 
+static void picod_tap_report (const char *action, const char *device,
+                              const uint8_t *data, int length) {
+    if (PicodUserTap) PicodUserTap (action, device, data, length);
+}
+
 static void picod_drain (struct PicodDeviceLink *link) {
     int i;
     for (i = 0; i < 0xf0; ++i) {
@@ -347,6 +352,7 @@ static void picod_close (struct PicodDeviceLink *link) {
     if (link->fd > 0) {
         close (link->fd);
         link->fd = -1;
+        picod_tap_report ("Closed", link->tty, 0, 0);
     }
     link->version = 0;
 }
@@ -355,6 +361,7 @@ static void picod_erase (int index) {
 
     struct PicodDeviceLink *link = PicodDevices[index];
     if (!link) return;
+    picod_tap_report ("Removed", link->tty, 0, 0);
     if (link->tty) free (link->tty);
     if (link->fd > 0) close (link->fd);
     free (link);
@@ -393,6 +400,8 @@ static void picod_open (struct PicodDeviceLink *link) {
 
     link->fd = open(link->tty, O_RDWR | O_NOCTTY | O_NONBLOCK);
     if (link->fd < 0) return;
+
+    picod_tap_report ("Open", link->tty, 0, 0);
 
     struct termios ttyio;
     if (tcgetattr(link->fd, &ttyio) != 0) goto abort;
@@ -448,6 +457,7 @@ static void picod_discovered (const char *tty) {
         link->version = 0;
         link->index = i;
         picod_drain (link);
+        picod_tap_report ("Added", link->tty, 0, 0);
     }
 
     if (link->fd <= 0) picod_open (link);
@@ -532,7 +542,7 @@ void picod_listen (PicodListener *listener) {
 }
 
 void picod_spy (PicodTap *tap) {
-    PicodTapCallback = tap;
+    PicodUserTap = tap;
 }
 
 int picod_count (void) {
@@ -627,7 +637,7 @@ const char *picod_submit (int index) {
     picod_pack16 (data+3, picod_crc16 (data, 3));
     picod_pack16 (data+count, picod_crc16 (data, count));
 
-    if (PicodTapCallback) PicodTapCallback ("Sending", link->tty, data, length);
+    picod_tap_report ("Sending", link->tty, data, length);
 
     int sent = write (link->fd, data, length);
     if (sent < 0) {
@@ -655,7 +665,7 @@ static int picode_packet_decode (struct PicodDeviceLink *link) {
     if (count < 5) return 0; // Need more data
     if (data[0] != 0xff) return 1;
     if (picod_unpack16 (data+3) != picod_crc16 (data, 3)) {
-        if (PicodTapCallback) PicodTapCallback ("Bad Head CRC", link->tty, data, 3);
+        picod_tap_report ("Bad Head CRC", link->tty, data, 3);
         return 1;
     }
 
@@ -668,13 +678,11 @@ static int picode_packet_decode (struct PicodDeviceLink *link) {
     if (length > count) return 0; // Need more data.
 
     if (picod_unpack16 (data + length - 2) != picod_crc16 (data, length-2)) {
-        if (PicodTapCallback)
-            PicodTapCallback ("Bad Data CRC", link->tty, data, length);
+        picod_tap_report ("Bad Data CRC", link->tty, data, length);
         return length; // Ignore the whole packet when corrupted
     }
 
-    if (PicodTapCallback)
-        PicodTapCallback ("Received", link->tty, data, count);
+    picod_tap_report ("Received", link->tty, data, count);
 
     int cursor = 5;
     while (cursor < length - 2) {

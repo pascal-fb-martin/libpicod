@@ -93,7 +93,9 @@ typedef void PicodTap (const char *action, const char *device,
 void picod_spy (PicodTap *tap);
 ```
 
-Install a tap to listen to packets sent and received. This is more of a debug feature. The tap function is also called when a CRC error is detected.
+Install a tap to listen to packets sent and received, device discovered or removed, CRC errors, etc. This is a debug feature.
+
+The tap function may be called with data null and length 0.
 
 ```
 void picod_count (void);

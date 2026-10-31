@@ -80,5 +80,5 @@ debian-package:
 	$(INSTALL) -m 0755 debian/postinst build/libpicod/DEBIAN
 	$(INSTALL) -m 0755 debian/postrm build/libpicod/DEBIAN
 	make DESTDIR=build/libpicod install
-	cd build ; fakeroot dpkg-deb -b libpicod
+	cd build ; fakeroot dpkg-deb -b libpicod .
 
