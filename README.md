@@ -8,6 +8,8 @@ The detection of the RPi Pico devices relies a device naming convention implemen
 
 The current implementation handles up to 16 RPi Pico devices simultaneously.
 
+This library provides an asynchronous API, designed for web service applications like [HousePicod](https://github.com/pascal-fb-martin/housepicod).
+
 ## Installation.
 
 Clone this repository, run `make rebuild` and then `sudo make install`.
