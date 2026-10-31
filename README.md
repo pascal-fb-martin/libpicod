@@ -16,7 +16,7 @@ Clone this repository, run `make rebuild` and then `sudo make install`.
 
 You can now plug a RPi Pico device (with picod installed) to a USB port and test that the installation was successful by typing `picodcmd list`.
 
-It is also possible to build libpicod as a Debian package and install it. See section "Debian Packaging".
+It is also possible to build libpicod as a Debian package and install it. See section [Debian Packaging](#debian-packaging).
 
 ## Command line tool for test and experimentation
 
