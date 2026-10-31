@@ -16,6 +16,8 @@ Clone this repository, run `make rebuild` and then `sudo make install`.
 
 You can now plug a RPi Pico device (with picod installed) to a USB port and test that the installation was successful by typing `picodcmd list`.
 
+It is also possible to build libpicod as a Debian package and install it. See section "Debian Packaging".
+
 ## Command line tool for test and experimentation
 
 The library comes with a test application that doubles as an example: `picodcmd`:
@@ -336,4 +338,21 @@ There are two types of reports:
 
 > [!WARNING]
 > The value returned by picod_gpio_alert_timestamp() is the raw RPi Pico tick, not synchronized to the local time. Basic rule is to take the local time when the response was received, consider that it matches the tick of the last report and then evaluate the time of previous report items in this message relative to the last.
+
+## Debian Packaging
+
+The provided Makefile supports building private Debian packages. These are _not_ official distribution packages: 
+
+- They do not follow all Debian policies.
+
+- They are not built using Debian standard conventions and tools.
+
+- The packaging is not separate from the upstream sources, and there is
+  no source package.
+
+To build a Debian package, use the `debian-package` target: 
+
+```
+make debian-package
+```
 
