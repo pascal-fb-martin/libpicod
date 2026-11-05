@@ -32,6 +32,8 @@ The `-t` option causes picodcmd to start with protocol traces enabled. This is e
 
 Type `picodcmd help` for a list of commands.
 
+When running in interactive mode, a minimal history mechanism is available: print each history entry and their sequence numbers using the `his` command, and recall a previous command by entering `!` followed by the sequence number.
+
 The library can be removed: run `sudo make uninstall`. This also removes the `udev` rules.
 
 ## API
@@ -341,7 +343,7 @@ There are two types of reports:
 
 ## Debian Packaging
 
-The provided Makefile supports building private Debian packages. These are _not_ official distribution packages: 
+The provided Makefile supports building private Debian packages. These are _not_ official distribution packages:
 
 - They do not follow all Debian policies.
 
@@ -350,7 +352,7 @@ The provided Makefile supports building private Debian packages. These are _not_
 - The packaging is not separate from the upstream sources, and there is
   no source package.
 
-To build a Debian package, use the `debian-package` target: 
+To build a Debian package, use the `debian-package` target:
 
 ```
 make debian-package

@@ -69,12 +69,75 @@ static const char *HelpText =
     "  gpio i pin=0|1..    Set the specified GPIO pins to 0 or 1.\n"
     "  debounce i pin t    Set a debounce timer on the specified GPIO pin.\n"
     "  alert i pin..       Enable alerts on the specified GPIO pins.\n"
-    "  silence i pin..     Disable alerts on the specified GPIO pins.\n";
+    "  silence i pin..     Disable alerts on the specified GPIO pins.\n"
+    "  his[tory]           Show the history of commands.\n"
+    "  !sequence           Re-execute one command from the history.\n";
 
-// What to wait for before accpting the next command.
+// What to wait for before accepting the next command.
 // Two distinct variables are used because there are two independent conditions
 static int WaitResponse = -1; // Wait for a response from the specified device
 static int WaitDetected = -1; // Wait for a detection of the specified device
+
+// Command history
+struct PicodHistory {
+    int sequence;
+    char cmd[256];
+};
+
+#define PICODLOGSIZE 256
+static struct PicodHistory PicodLog[PICODLOGSIZE];
+static unsigned int        PicodLogSequence = 0;
+
+static void picodRecord (int argc, const char **argv) {
+
+    int sequence = ++PicodLogSequence;
+    int index = sequence % PICODLOGSIZE;
+
+    PicodLog[index].sequence = sequence;
+
+    int cursor = 0;
+    int l = sizeof(PicodLog[index].cmd);
+    char *p = PicodLog[index].cmd;
+    const char *sep = "";
+    int i;
+    for (i = 0; i < argc; ++i) {
+        cursor += snprintf (p+cursor, l-cursor, "%s%s", sep, argv[i]);
+        sep = " ";
+    }
+
+    // Do not store the same command again and again
+    int previous = (sequence - 1) % PICODLOGSIZE;
+    if ((PicodLog[previous].sequence == sequence - 1) &&
+        (!strcmp (PicodLog[previous].cmd, PicodLog[index].cmd))) {
+       PicodLogSequence -= 1;
+       PicodLog[index].sequence = 0;
+    }
+}
+
+static const char *picodRecall (int sequence) {
+
+    if (sequence <= 0) sequence = PicodLogSequence;
+    int index = sequence % PICODLOGSIZE;
+
+    if (PicodLog[index].sequence != sequence) return 0;
+    return PicodLog[index].cmd;
+}
+
+static void picodPrintHistory (void) {
+
+    printf ("SEQUENCE   COMMAND\n");
+
+    int cursor = PicodLogSequence % PICODLOGSIZE;
+    int i;
+    for (i = cursor + 1; i < PICODLOGSIZE; ++i) {
+        if (PicodLog[i].sequence <= 0) continue;
+        printf ("%3d        %s\n", PicodLog[i].sequence, PicodLog[i].cmd);
+    }
+    for (i = 0; i <= cursor; ++i) {
+        if (PicodLog[i].sequence <= 0) continue;
+        printf ("%3d        %s\n", PicodLog[i].sequence, PicodLog[i].cmd);
+    }
+}
 
 static void picodPrompt (void) {
 
@@ -315,6 +378,11 @@ static const char *picodPrepare (int argc, const char **argv) {
 
         exit (0);
 
+    } else if (!strncasecmp (argv[0], "his", 3)) {
+
+        picodPrintHistory ();
+        return 0;
+
     } else if (!strcasecmp (argv[0], "help")) {
 
         printf ("%s", HelpText);
@@ -406,7 +474,9 @@ static const char *picodPrepare (int argc, const char **argv) {
     return "invalid command";
 }
 
-static void picodWaitDevice (int *device) {
+static void picodWaitDevice (int *device, int tty) {
+
+    time_t start = time(0) + 1;
 
     do {
         int max = 0;
@@ -432,11 +502,15 @@ static void picodWaitDevice (int *device) {
             FD_SET (fd, &except);
             if (fd > max) max = fd;
         }
+        if (tty) FD_SET (0, &reads);
 
         struct timeval timeout;
         timeout.tv_sec = 1;
         timeout.tv_usec = 0;
         select (max+1, &reads, busy?&writes:0, &except, &timeout);
+
+        if (tty && FD_ISSET (0, &reads)) break;
+        if ((!tty) && (time(0) > start)) break;
 
         count = picod_count();
         while (count-- > 0) {
@@ -451,6 +525,12 @@ static void picodWaitDevice (int *device) {
     } while (*device >= 0);
 }
 
+static void picodWaitInput (int tty) {
+
+    int waitforever = 99;
+    picodWaitDevice (&waitforever, tty);
+}
+
 static void picodExecute (int argc, const char **argv) {
 
     const char *error = picodPrepare (argc, argv);
@@ -458,13 +538,25 @@ static void picodExecute (int argc, const char **argv) {
         printf ("Error: %s\n", error);
         return;
     }
+    picodRecord (argc, argv);
+
     if (WaitResponse < 0) return;
 
     picod_submit (WaitResponse);
-    picodWaitDevice (&WaitResponse);
+    picodWaitDevice (&WaitResponse, 0);
 }
 
 static void picodParse (char *cmd) {
+
+    // Is this to redo a previous command?
+    if (cmd[0] == '!') {
+        static char Recall[256];
+        const char *his = picodRecall (atoi (cmd+1));
+        if (!his) return;
+        snprintf (Recall, sizeof(Recall), "%s", his);
+        printf ("%s\n", Recall);
+        cmd = Recall;
+    }
 
     // Split the command into arguments
     const char *arguments[34];
@@ -487,50 +579,17 @@ static void picodParse (char *cmd) {
     picodExecute (count, arguments);
 }
 
-static void picodWaitInput (int tty) {
+static void picodDetectAndWakeup (void) {
 
-    time_t start = time(0) + 1;
+    int count = picod_count ();
+    if (count <= 0) return;
 
-    for (;;) {
-        int max = 0;
-        fd_set reads;
-        fd_set writes;
-        fd_set except;
-        int busy = 0;
-
-        FD_ZERO (&reads);
-        FD_ZERO (&writes);
-        FD_ZERO (&except);
-
-        int count = picod_count();
-        while (count-- > 0) {
-            int fd = picod_descriptor (count);
-            if (fd <= 0) continue;
-            FD_SET (fd, &reads);
-            FD_SET (fd, &except);
-            if (fd > max) max = fd;
-        }
-        if (tty) FD_SET (0, &reads);
-
-        struct timeval timeout;
-        timeout.tv_sec = 1;
-        timeout.tv_usec = 0;
-        select (max+1, &reads, 0, &except, &timeout);
-
-        if (tty && FD_ISSET (0, &reads)) break;
-        if ((!tty) && (time(0) > start)) break;
-
-        count = picod_count();
-        while (count-- > 0) {
-            int fd = picod_descriptor (count);
-            if (fd <= 0) continue;
-            if (FD_ISSET (fd, &reads) || FD_ISSET (fd, &except))
-                picod_receive (fd);
-            if (busy && FD_ISSET (fd, &writes))
-                picod_transmit (fd);
-        }
-        picod_background (time(0));
+    while (count-- > 0) {
+        if (!picod_uid(count)) return;
     }
+
+    // Now all Pico devices present have been identified.
+    WaitDetected = -1;
 }
 
 static void picodDetectAndExit (void) {
@@ -564,7 +623,13 @@ int main (int argc, const char **argv) {
     if (argc < 2) {
         struct stat entry;
         if (!fstat (0, &entry)) {
-            if (S_ISCHR(entry.st_mode)) ShowPrompt = 1;
+            if (S_ISCHR(entry.st_mode)) {
+                ShowPrompt = 1;
+            } else {
+                WaitDetected = 0;
+                picod_listen (picodDetectAndWakeup);
+                picodWaitDevice (&WaitDetected, 0);
+            }
         }
         for (;;) {
             char buffer[160];
@@ -578,7 +643,7 @@ int main (int argc, const char **argv) {
     if (argc > 2) {
         picod_listen (picodDetection);
         WaitDetected = atoi(argv[2]);
-        picodWaitDevice (&WaitDetected);
+        picodWaitDevice (&WaitDetected, 0);
     } else if (!strcasecmp (argv[1], "list")) {
         picod_listen (picodDetectAndExit);
         picodWaitInput (0);
