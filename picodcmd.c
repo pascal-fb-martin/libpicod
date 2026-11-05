@@ -71,6 +71,7 @@ static const char *HelpText =
     "  alert i pin..       Enable alerts on the specified GPIO pins.\n"
     "  silence i pin..     Disable alerts on the specified GPIO pins.\n"
     "  wait N              Wait for N seconds.\n"
+    "  print TEXT          Print its arguments to standard output.\n"
     "  his[tory]           Show the history of commands.\n"
     "  !sequence           Re-execute one command from the history.\n";
 
@@ -446,6 +447,17 @@ static const char *picodPrepare (int argc, const char **argv) {
         int delay = 1;
         if (argc > 1) delay = atoi (argv[1]);
         picodWaitInput (0, delay);
+        return 0;
+
+    } else if (!strcasecmp (argv[0], "print")) {
+
+        int i;
+        const char *sep = "";
+        for (i = 1; i < argc; ++i) {
+            printf ("%s%s", sep, argv[i]);
+            sep = " ";
+        }
+        printf ("\n");
         return 0;
 
     } else if (!strncasecmp (argv[0], "his", 3)) {
