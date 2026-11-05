@@ -70,6 +70,7 @@ static const char *HelpText =
     "  debounce i pin t    Set a debounce timer on the specified GPIO pin.\n"
     "  alert i pin..       Enable alerts on the specified GPIO pins.\n"
     "  silence i pin..     Disable alerts on the specified GPIO pins.\n"
+    "  wait N              Wait for N seconds.\n"
     "  his[tory]           Show the history of commands.\n"
     "  !sequence           Re-execute one command from the history.\n";
 
@@ -320,6 +321,68 @@ static void picodDetection (void) {
     }
 }
 
+// The general wait point:
+// device: the variable to wait on. Wait is over when < 0.
+// tty: 0|1. Determine if the function listens to the standard input.
+// delay: how long to wait. Forever wait if <= 0.
+//
+static void picodWaitDevice (int *device, int tty, int delay) {
+
+    time_t deadline = time(0) + delay;
+
+    do {
+        int max = 0;
+        int busy = 0;
+
+        fd_set reads;
+        fd_set writes;
+        fd_set except;
+
+        FD_ZERO (&reads);
+        FD_ZERO (&writes);
+        FD_ZERO (&except);
+
+        int count = picod_count();
+        while (count-- > 0) {
+            int fd = picod_descriptor (count);
+            if (fd <= 0) continue;
+            FD_SET (fd, &reads);
+            if (picod_busy (count)) {
+                busy = 1;
+                FD_SET (fd, &writes);
+            }
+            FD_SET (fd, &except);
+            if (fd > max) max = fd;
+        }
+        if (tty) FD_SET (0, &reads);
+
+        struct timeval timeout;
+        timeout.tv_sec = 1;
+        timeout.tv_usec = 0;
+        select (max+1, &reads, busy?&writes:0, &except, &timeout);
+
+        if (tty && FD_ISSET (0, &reads)) break;
+        if ((delay >= 0) && (time(0) > deadline)) break;
+
+        count = picod_count();
+        while (count-- > 0) {
+            int fd = picod_descriptor (count);
+            if (fd <= 0) continue;
+            if (FD_ISSET (fd, &reads) || FD_ISSET (fd, &except))
+                picod_receive (fd);
+            if (busy && FD_ISSET (fd, &writes))
+                picod_transmit (fd);
+        }
+        picod_background (time(0));
+    } while (*device >= 0);
+}
+
+static void picodWaitInput (int tty, int delay) {
+
+    int waitforever = 99;
+    picodWaitDevice (&waitforever, tty, delay);
+}
+
 static const char *picodPrepare (int argc, const char **argv) {
 
     if (argc < 1) return 0; // empty command.
@@ -377,6 +440,13 @@ static const char *picodPrepare (int argc, const char **argv) {
     } else if (!strcasecmp (argv[0], "exit")) {
 
         exit (0);
+
+    } else if (!strcasecmp (argv[0], "wait")) {
+
+        int delay = 1;
+        if (argc > 1) delay = atoi (argv[1]);
+        picodWaitInput (0, delay);
+        return 0;
 
     } else if (!strncasecmp (argv[0], "his", 3)) {
 
@@ -474,63 +544,6 @@ static const char *picodPrepare (int argc, const char **argv) {
     return "invalid command";
 }
 
-static void picodWaitDevice (int *device, int tty) {
-
-    time_t start = time(0) + 1;
-
-    do {
-        int max = 0;
-        int busy = 0;
-
-        fd_set reads;
-        fd_set writes;
-        fd_set except;
-
-        FD_ZERO (&reads);
-        FD_ZERO (&writes);
-        FD_ZERO (&except);
-
-        int count = picod_count();
-        while (count-- > 0) {
-            int fd = picod_descriptor (count);
-            if (fd <= 0) continue;
-            FD_SET (fd, &reads);
-            if (picod_busy (count)) {
-                busy = 1;
-                FD_SET (fd, &writes);
-            }
-            FD_SET (fd, &except);
-            if (fd > max) max = fd;
-        }
-        if (tty) FD_SET (0, &reads);
-
-        struct timeval timeout;
-        timeout.tv_sec = 1;
-        timeout.tv_usec = 0;
-        select (max+1, &reads, busy?&writes:0, &except, &timeout);
-
-        if (tty && FD_ISSET (0, &reads)) break;
-        if ((!tty) && (time(0) > start)) break;
-
-        count = picod_count();
-        while (count-- > 0) {
-            int fd = picod_descriptor (count);
-            if (fd <= 0) continue;
-            if (FD_ISSET (fd, &reads) || FD_ISSET (fd, &except))
-                picod_receive (fd);
-            if (busy && FD_ISSET (fd, &writes))
-                picod_transmit (fd);
-        }
-        picod_background (time(0));
-    } while (*device >= 0);
-}
-
-static void picodWaitInput (int tty) {
-
-    int waitforever = 99;
-    picodWaitDevice (&waitforever, tty);
-}
-
 static void picodExecute (int argc, const char **argv) {
 
     const char *error = picodPrepare (argc, argv);
@@ -543,7 +556,7 @@ static void picodExecute (int argc, const char **argv) {
     if (WaitResponse < 0) return;
 
     picod_submit (WaitResponse);
-    picodWaitDevice (&WaitResponse, 0);
+    picodWaitDevice (&WaitResponse, 0, 1);
 }
 
 static void picodParse (char *cmd) {
@@ -614,13 +627,13 @@ int main (int argc, const char **argv) {
             } else {
                 WaitDetected = 0;
                 picod_listen (picodDetectAndWakeup);
-                picodWaitDevice (&WaitDetected, 0);
+                picodWaitDevice (&WaitDetected, 0, 1);
             }
         }
         for (;;) {
             char buffer[160];
             picodPrompt ();
-            picodWaitInput (1);
+            picodWaitInput (1, 0);
             if (!fgets (buffer, sizeof(buffer), stdin)) exit (0);
             if ((buffer[0] > ' ') && (buffer[0] != '#')) picodParse (buffer);
         }
@@ -629,11 +642,11 @@ int main (int argc, const char **argv) {
     if (argc > 2) {
         picod_listen (picodDetection);
         WaitDetected = atoi(argv[2]);
-        picodWaitDevice (&WaitDetected, 0);
+        picodWaitDevice (&WaitDetected, 0, 1);
     } else if (strcmp (argv[1], "help")) {
         WaitDetected = 0;
         picod_listen (picodDetectAndWakeup);
-        picodWaitDevice (&WaitDetected, 0);
+        picodWaitDevice (&WaitDetected, 0, 1);
     }
     picodExecute (argc-1, argv+1);
 }
