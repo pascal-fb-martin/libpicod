@@ -630,7 +630,7 @@ int main (int argc, const char **argv) {
         picod_listen (picodDetection);
         WaitDetected = atoi(argv[2]);
         picodWaitDevice (&WaitDetected, 0);
-    } else {
+    } else if (strcmp (argv[1], "help")) {
         WaitDetected = 0;
         picod_listen (picodDetectAndWakeup);
         picodWaitDevice (&WaitDetected, 0);
