@@ -2,42 +2,42 @@ print Configuring..
 # pins 8 to 15 set to output with pull up resistor
 output 0 15=1 14=1 13=1 12=1 11=1 10=1 9=1 8=1
 pull 0 15=2 14=2 13=2 12=2 11=2 10=2 9=2 8=2
-print Blink pin 15 (relay K1)..
+print Blink pin 15 (relay K8)..
 gpio 0 15=0
 wait 1
 gpio 0 15=1
 wait 1
-print Blink pin 14 (relay K2)..
+print Blink pin 14 (relay K7)..
 gpio 0 14=0
 wait 1
 gpio 0 14=1
 wait 1
-print Blink pin 13 (relay K3)..
+print Blink pin 13 (relay K6)..
 gpio 0 13=0
 wait 1
 gpio 0 13=1
 wait 1
-print Blink pin 12 (relay K4)..
+print Blink pin 12 (relay K5)..
 gpio 0 12=0
 wait 1
 gpio 0 12=1
 wait 1
-print Blink pin 11 (relay K5)..
+print Blink pin 11 (relay K4)..
 gpio 0 11=0
 wait 1
 gpio 0 11=1
 wait 1
-print Blink pin 10 (relay K6)..
+print Blink pin 10 (relay K3)..
 gpio 0 10=0
 wait 1
 gpio 0 10=1
 wait 1
-print Blink pin 9 (relay K7)..
+print Blink pin 9 (relay K2)..
 gpio 0 9=0
 wait 1
 gpio 0 9=1
 wait 1
-print Blink pin 8 (relay K8)..
+print Blink pin 8 (relay K1)..
 gpio 0 8=0
 wait 1
 gpio 0 8=1
