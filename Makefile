@@ -46,14 +46,16 @@ picodtst: picodtst.o libpicod.a
 picodcmd: picodcmd.o libpicod.a
 	gcc -Os -o picodcmd picodcmd.o libpicod.a -lrt
 
-install:
-	$(INSTALL) -m 0755 -d $(DESTDIR)$(prefix)/bin
-	$(INSTALL) -m 0755 -s picodcmd $(DESTDIR)$(prefix)/bin
+dev:
 	$(INSTALL) -m 0755 -d $(DESTDIR)$(prefix)/lib
-	$(INSTALL) -m 0644 libpicod.a $(DESTDIR)$(prefix)/lib
 	$(INSTALL) -m 0755 -d $(DESTDIR)$(prefix)/include
+	$(INSTALL) -m 0644 libpicod.a $(DESTDIR)$(prefix)/lib
 	$(INSTALL) -m 0644 picod.h picod_packets.h $(DESTDIR)$(prefix)/include
 	$(INSTALL) -m 0644 picod_gpio.h $(DESTDIR)$(prefix)/include
+
+install: dev
+	$(INSTALL) -m 0755 -d $(DESTDIR)$(prefix)/bin
+	$(INSTALL) -m 0755 -s picodcmd $(DESTDIR)$(prefix)/bin
 	$(INSTALL) -m 0755 -d $(DESTDIR)/etc/udev/rules.d
 	$(INSTALL) -m 0644 99-RPI-pico.rules $(DESTDIR)/etc/udev/rules.d
 	if [ "x$(DESTDIR)" = "x" ] ; then /usr/bin/udevadm control --reload-rules ; fi
